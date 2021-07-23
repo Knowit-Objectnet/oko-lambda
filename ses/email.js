@@ -1,57 +1,47 @@
-var AWS = require("aws-sdk")
-var SES = new AWS.SES()
-
-function response(code, message, callback) {
-    console.log(code, message)
-    callback(null, {
-        statusCode: code,
-        body: JSON.stringify(message)
-    })
-}
+const AWS = require("aws-sdk")
+AWS.config.update({ region: "eu-central-1" })
+const SES = new AWS.SES()
+const Lambda = new AWS.Lambda()
 
 exports.handler = async (event, context, callback) => {
-    const success = messageId => {
-        response(200, messageId, callback)
-    }
-    
-    const failure = (error, code) => {
-        response(code || 500, error, callback)
-    }
-    
+    const success = data => response(200, data.MessageId, callback)
+    const failure = error => response(500, error, callback)
+
     await validator(event)
     .then(data => {
         const parameters = formatter(data)
         return SES.sendEmail(parameters).promise()
     })
-    .then(notification => success(notification.MessageId))
+    .then(success)
     .catch(failure)
 }
 
+function response(code, message, callback) {
+    callback(null, {
+        statusCode: code,
+        message
+    })
+}
 
 const validator = data => new Promise((resolve, reject) => {
-    // Validate request data
-    if (typeof data === "undefined" || data == null) {
-        reject("Invalid request data")
-    }
-    
-    // Validate json structure
-    if (!data.hasOwnProperty("addresses") || !data.hasOwnProperty("message")) {
-        reject("Missing parameters")
-    }
-    
-    // Validate parameter types
-    if (!(data.addresses instanceof Array) || !(typeof data.message === "string")) {
-        reject("Invalid parameters")
-    }
-    
-    // Validate values
-    if (!data.addresses.length || !data.message.length) {
-        reject("Invalid values")
-    }
+    Lambda.invoke({
+        FunctionName: "email-validator",
+        LogType: "Tail",
+        Payload: JSON.stringify(data)
+    })
+    .promise()
+    .then(response => {
+        const payload = JSON.parse(response.Payload)
 
-    // Sanatize inputs
+        if (!payload) {
+            reject("Invalid response from invoke")
+        } else if (response.FunctionError) {
+            reject(payload.errorMessage || "Invoke error")
+        }
+        
+        resolve(payload)
+    }).catch(reject)
     
-    resolve(data)
 })
 
 const formatter = data => ({
@@ -72,11 +62,11 @@ const formatter = data => ({
         },
         Subject: {
             Charset: 'UTF-8',
-            Data: 'Test Notification'
+            Data: data.subject
         }
     },
-    Source: 'donotreply@knowit.no',
+    Source: 'ikkesvar@knowit.no',
         ReplyToAddresses: [
-            'donotreply@knowit.no'
+            'ikkesvar@knowit.no'
         ]
 })
