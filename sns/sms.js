@@ -45,7 +45,7 @@ const validator = data => new Promise((resolve, reject) => {
 })
 
 const formatter = data => ({
-    Subject: "Ombruk",
+    Subject: data.subject,
     Message: data.message,
     PhoneNumber: data.number,
     MessageAttributes: {
