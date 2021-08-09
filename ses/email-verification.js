@@ -26,7 +26,8 @@ const email = data => new Promise((resolve, reject) => {
         LogType: "Tail",
         Payload: JSON.stringify({
           addresses: [data.address],
-          message: "Bekreftelseskoden din er: " + code
+          message: "Bekreftelseskoden din er: " + code,
+          subject: "Verifiseringskode - Ombruk"
         })
     })
     .promise()

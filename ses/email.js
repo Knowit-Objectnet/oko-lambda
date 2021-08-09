@@ -62,7 +62,7 @@ const formatter = data => ({
         },
         Subject: {
             Charset: 'UTF-8',
-            Data: data?.subject  || "Verifiseringskode Ombruk"
+            Data: data?.subject
         }
     },
     Source: 'ikkesvar@knowit.no',

@@ -21,6 +21,23 @@ exports.handler = async data => new Promise((resolve, reject) => {
     }
     
     // Validate message length
+    if (Buffer.from(data.message).length > 140) {
+        reject("Message length exceeded")
+    }
     
-    resolve(data)
+    // Validate subject
+    if (typeof data.subject === "string") {
+        if (data.subject.length <= 0 || data.subject.length >= 999) {
+            reject("Invalid values")
+        }
+    }
+    
+    // Sanatize output
+    const output = {
+        number: data.number,
+        message: data.message,
+        subject: data.subject
+    }
+    
+    resolve(output)
 })
